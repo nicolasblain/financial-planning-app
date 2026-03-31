@@ -1,0 +1,309 @@
+<!-- Key Milestones -->
+<div class="milestone-grid">
+    <div class="card milestone-card">
+        <div class="milestone-label">Current Age</div>
+        <div class="milestone-value">{{ params.current_age }}</div>
+    </div>
+    <div class="card milestone-card">
+        <div class="milestone-label">Retirement Age</div>
+        <div class="milestone-value">{{ params.retirement_age }}</div>
+    </div>
+    {% if retirement_year %}
+    <div class="card milestone-card">
+        <div class="milestone-label">After-Tax at Retirement</div>
+        <div class="milestone-value">${{ "{:,.0f}".format(retirement_year.after_tax_income) }}</div>
+    </div>
+    {% endif %}
+    <div class="card milestone-card">
+        <div class="milestone-label">Peak Savings</div>
+        <div class="milestone-value">${{ "{:,.0f}".format(peak_savings.cumulative_savings) }}</div>
+        <div class="milestone-sub">at age {{ peak_savings.age }}</div>
+    </div>
+</div>
+
+<!-- Income & Tax Chart -->
+<div class="card chart-card">
+    <h2>Income Before & After Taxes</h2>
+    <p class="chart-subtitle">Gross income, total taxes, and net income over your lifetime</p>
+    <div class="chart-container-projection">
+        <canvas id="incomeTaxChart"></canvas>
+    </div>
+</div>
+
+<!-- Spending & Savings Chart -->
+<div class="card chart-card">
+    <h2>Spending & Savings</h2>
+    <p class="chart-subtitle">How your after-tax income splits between spending and saving each year</p>
+    <div class="chart-container-projection">
+        <canvas id="spendingSavingsChart"></canvas>
+    </div>
+</div>
+
+<!-- Cumulative Savings Chart -->
+<div class="card chart-card">
+    <h2>Cumulative Savings</h2>
+    <p class="chart-subtitle">Total invested wealth over time</p>
+    <div class="chart-container-projection">
+        <canvas id="cumulativeChart"></canvas>
+    </div>
+</div>
+
+<!-- Effective Tax Rate -->
+<div class="card chart-card">
+    <h2>Effective Tax Rate</h2>
+    <p class="chart-subtitle">Combined federal, provincial, and payroll deductions as % of gross income</p>
+    <div class="chart-container-projection">
+        <canvas id="taxRateChart"></canvas>
+    </div>
+</div>
+
+<!-- Data Table -->
+<div class="card chart-card">
+    <h2>Year-by-Year Detail</h2>
+    <div class="projection-table-wrapper">
+        <table class="projection-table">
+            <thead>
+                <tr>
+                    <th>Age</th>
+                    <th>Year</th>
+                    <th>Gross Income</th>
+                    <th>Total Tax</th>
+                    <th>Tax Rate</th>
+                    <th>After Tax</th>
+                    <th>Spending</th>
+                    <th>Savings</th>
+                    <th>Total Wealth</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in projections %}
+                {% if loop.index0 % 5 == 0 or p.age == params.retirement_age or p.age == params.current_age %}
+                <tr class="{% if p.is_retired %}retired-row{% endif %}{% if p.age == params.retirement_age %} retirement-marker{% endif %}">
+                    <td>{{ p.age }}</td>
+                    <td>{{ p.year }}</td>
+                    <td>${{ "{:,.0f}".format(p.gross_income) }}</td>
+                    <td>${{ "{:,.0f}".format(p.total_tax) }}</td>
+                    <td>{{ p.effective_rate }}%</td>
+                    <td>${{ "{:,.0f}".format(p.after_tax_income) }}</td>
+                    <td>${{ "{:,.0f}".format(p.spending) }}</td>
+                    <td>${{ "{:,.0f}".format(p.annual_savings) }}</td>
+                    <td>${{ "{:,.0f}".format(p.cumulative_savings) }}</td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+    const data = {{ chart_data_json | safe }};
+    const retirementAge = {{ params.retirement_age }};
+
+    Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    Chart.defaults.font.size = 12;
+
+    const retirementLinePlugin = {
+        id: 'retirementLine',
+        afterDraw(chart) {
+            const idx = data.ages.indexOf(retirementAge);
+            if (idx === -1) return;
+            const meta = chart.getDatasetMeta(0);
+            if (!meta.data[idx]) return;
+            const x = meta.data[idx].x;
+            const ctx = chart.ctx;
+            const { top, bottom } = chart.chartArea;
+            ctx.save();
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([6, 4]);
+            ctx.beginPath();
+            ctx.moveTo(x, top);
+            ctx.lineTo(x, bottom);
+            ctx.stroke();
+            ctx.fillStyle = '#64748b';
+            ctx.font = '11px -apple-system, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Retirement', x, top - 6);
+            ctx.restore();
+        }
+    };
+
+    const dollarTick = v => {
+        if (Math.abs(v) >= 1_000_000) return '$' + (v / 1_000_000).toFixed(1) + 'M';
+        if (Math.abs(v) >= 1_000) return '$' + (v / 1_000).toFixed(0) + 'k';
+        return '$' + v;
+    };
+
+    const dollarTooltip = ctx => '$' + Number(ctx.parsed.y).toLocaleString('en-CA', {maximumFractionDigits: 0});
+
+    const commonOpts = {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        scales: {
+            x: {
+                grid: { display: false },
+                ticks: { maxTicksLimit: 15, callback: (v, i) => data.ages[i] }
+            },
+            y: {
+                grid: { color: 'rgba(0,0,0,0.04)' },
+                ticks: { callback: dollarTick }
+            }
+        },
+        plugins: {
+            tooltip: {
+                callbacks: {
+                    title: ctx => 'Age ' + data.ages[ctx[0].dataIndex],
+                    label: ctx => ctx.dataset.label + ': $' + Number(ctx.parsed.y).toLocaleString('en-CA', {maximumFractionDigits: 0})
+                }
+            },
+            legend: {
+                display: true,
+                position: 'top',
+                labels: { boxWidth: 12, padding: 16, font: { size: 12 } }
+            }
+        }
+    };
+
+    // 1. Income & Tax
+    new Chart(document.getElementById('incomeTaxChart'), {
+        type: 'line',
+        data: {
+            labels: data.ages,
+            datasets: [
+                {
+                    label: 'Gross Income',
+                    data: data.gross_income,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59,130,246,0.08)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+                    borderWidth: 2.5,
+                },
+                {
+                    label: 'Total Tax',
+                    data: data.total_tax,
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239,68,68,0.08)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+                    borderWidth: 2,
+                },
+                {
+                    label: 'After-Tax Income',
+                    data: data.after_tax_income,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16,185,129,0.08)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+                    borderWidth: 2.5,
+                },
+            ]
+        },
+        options: { ...commonOpts },
+        plugins: [retirementLinePlugin],
+    });
+
+    // 2. Spending & Savings
+    new Chart(document.getElementById('spendingSavingsChart'), {
+        type: 'bar',
+        data: {
+            labels: data.ages,
+            datasets: [
+                {
+                    label: 'Spending',
+                    data: data.spending,
+                    backgroundColor: '#f59e0b',
+                    borderRadius: 2,
+                },
+                {
+                    label: 'Savings',
+                    data: data.annual_savings,
+                    backgroundColor: '#10b981',
+                    borderRadius: 2,
+                },
+            ]
+        },
+        options: {
+            ...commonOpts,
+            scales: {
+                ...commonOpts.scales,
+                x: { ...commonOpts.scales.x, stacked: true },
+                y: { ...commonOpts.scales.y, stacked: true },
+            }
+        },
+        plugins: [retirementLinePlugin],
+    });
+
+    // 3. Cumulative Savings
+    new Chart(document.getElementById('cumulativeChart'), {
+        type: 'line',
+        data: {
+            labels: data.ages,
+            datasets: [{
+                label: 'Total Invested Wealth',
+                data: data.cumulative_savings,
+                borderColor: '#8b5cf6',
+                backgroundColor: 'rgba(139,92,246,0.1)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 0,
+                pointHoverRadius: 5,
+                borderWidth: 2.5,
+            }]
+        },
+        options: { ...commonOpts },
+        plugins: [retirementLinePlugin],
+    });
+
+    // 4. Effective Tax Rate
+    new Chart(document.getElementById('taxRateChart'), {
+        type: 'line',
+        data: {
+            labels: data.ages,
+            datasets: [{
+                label: 'Effective Tax Rate',
+                data: data.effective_rate,
+                borderColor: '#ef4444',
+                backgroundColor: 'rgba(239,68,68,0.08)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 0,
+                pointHoverRadius: 5,
+                borderWidth: 2,
+            }]
+        },
+        options: {
+            ...commonOpts,
+            scales: {
+                ...commonOpts.scales,
+                y: {
+                    ...commonOpts.scales.y,
+                    ticks: { callback: v => v + '%' },
+                    min: 0,
+                    max: 50,
+                }
+            },
+            plugins: {
+                ...commonOpts.plugins,
+                tooltip: {
+                    callbacks: {
+                        title: ctx => 'Age ' + data.ages[ctx[0].dataIndex],
+                        label: ctx => 'Effective rate: ' + ctx.parsed.y + '%'
+                    }
+                }
+            }
+        },
+        plugins: [retirementLinePlugin],
+    });
+})();
+</script>

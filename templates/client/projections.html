@@ -1,0 +1,77 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Projections — Financial Planning{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Financial Projections</h1>
+    <a href="/client/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+</div>
+
+{% if not has_data %}
+<div class="card" style="text-align: center; padding: 3rem;">
+    <h2>No income data yet</h2>
+    <p style="color: var(--text-muted); margin: 1rem 0;">Complete your Income intake section to see projections.</p>
+    <a href="/client/intake/income" class="btn btn-primary">Enter Income Data</a>
+</div>
+{% else %}
+
+<!-- Assumptions Panel -->
+<div class="card assumptions-panel">
+    <h2>Assumptions</h2>
+    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+        Adjust these parameters to see how they affect your long-term financial picture.
+    </p>
+    <form id="projection-form"
+          hx-get="/client/projections"
+          hx-target="#projection-results"
+          hx-swap="innerHTML"
+          hx-trigger="change delay:300ms">
+        <div class="slider-grid">
+            <div class="slider-group">
+                <label>Retirement Age: <strong id="retirement_age_val">{{ params.retirement_age }}</strong></label>
+                <input type="range" name="retirement_age" min="50" max="75" value="{{ params.retirement_age }}"
+                       oninput="document.getElementById('retirement_age_val').textContent = this.value">
+                <div class="slider-range"><span>50</span><span>75</span></div>
+            </div>
+            <div class="slider-group">
+                <label>Savings Rate: <strong id="savings_rate_val">{{ params.savings_rate }}%</strong></label>
+                <input type="range" name="savings_rate" min="5" max="60" value="{{ params.savings_rate }}" step="1"
+                       oninput="document.getElementById('savings_rate_val').textContent = this.value + '%'">
+                <div class="slider-range"><span>5%</span><span>60%</span></div>
+            </div>
+            <div class="slider-group">
+                <label>Income Growth: <strong id="income_growth_val">{{ params.income_growth_rate }}%</strong></label>
+                <input type="range" name="income_growth" min="0" max="8" value="{{ params.income_growth_rate }}" step="0.5"
+                       oninput="document.getElementById('income_growth_val').textContent = this.value + '%'">
+                <div class="slider-range"><span>0%</span><span>8%</span></div>
+            </div>
+            <div class="slider-group">
+                <label>Inflation: <strong id="inflation_val">{{ params.inflation_rate }}%</strong></label>
+                <input type="range" name="inflation" min="0" max="6" value="{{ params.inflation_rate }}" step="0.5"
+                       oninput="document.getElementById('inflation_val').textContent = this.value + '%'">
+                <div class="slider-range"><span>0%</span><span>6%</span></div>
+            </div>
+            <div class="slider-group">
+                <label>Investment Return: <strong id="investment_return_val">{{ params.investment_return }}%</strong></label>
+                <input type="range" name="investment_return" min="0" max="12" value="{{ params.investment_return }}" step="0.5"
+                       oninput="document.getElementById('investment_return_val').textContent = this.value + '%'">
+                <div class="slider-range"><span>0%</span><span>12%</span></div>
+            </div>
+            <div class="slider-group">
+                <label>Retirement Income: <strong id="retirement_income_pct_val">{{ params.retirement_income_pct }}%</strong> of final salary</label>
+                <input type="range" name="retirement_income_pct" min="40" max="100" value="{{ params.retirement_income_pct }}" step="5"
+                       oninput="document.getElementById('retirement_income_pct_val').textContent = this.value + '%'">
+                <div class="slider-range"><span>40%</span><span>100%</span></div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Results (swapped by HTMX) -->
+<div id="projection-results">
+    {% include "components/projection_charts.html" %}
+</div>
+
+{% endif %}
+{% endblock %}

@@ -256,3 +256,101 @@ async def financial_overview(
         "liabilities_json": json.dumps(liabilities),
         "income_json": json.dumps(income),
     })
+
+
+@router.get("/projections", response_class=HTMLResponse)
+async def projections_page(
+    request: Request,
+    user: User = Depends(require_role(UserRole.CLIENT)),
+    db: Session = Depends(get_db),
+    # Allow overrides via query params (from HTMX sliders)
+    retirement_age: int = 0,
+    savings_rate: float = 0,
+    income_growth: float = 0,
+    inflation: float = 0,
+    investment_return: float = 0,
+    retirement_income_pct: float = 0,
+):
+    from datetime import date
+    from projections import ProjectionParams, run_projection
+
+    profile = db.query(ClientProfile).filter(ClientProfile.user_id == user.id).first()
+    if not profile:
+        return RedirectResponse(url="/client/dashboard")
+
+    # Load intake data
+    personal_data = _load_section_data(db, profile.id, "personal")
+    income_data = _load_section_data(db, profile.id, "income")
+    assets_data = _load_section_data(db, profile.id, "assets")
+
+    # Calculate age from DOB
+    dob_str = personal_data.get("date_of_birth", "")
+    current_age = 30  # default
+    if dob_str:
+        try:
+            dob = date.fromisoformat(dob_str)
+            today = date.today()
+            current_age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+        except ValueError:
+            pass
+
+    emp_income = _parse_number(income_data.get("employment_income"))
+    other_income = _parse_number(income_data.get("other_income"))
+
+    # Current invested savings (exclude property)
+    current_savings = sum([
+        _parse_number(assets_data.get("chequing_savings")),
+        _parse_number(assets_data.get("rrsp")),
+        _parse_number(assets_data.get("tfsa")),
+        _parse_number(assets_data.get("other_investments")),
+    ])
+
+    # Build params — use query overrides if provided, otherwise smart defaults
+    params = ProjectionParams(
+        current_age=current_age,
+        retirement_age=retirement_age if retirement_age > 0 else 65,
+        employment_income=emp_income,
+        other_income=other_income,
+        savings_rate=savings_rate if savings_rate > 0 else 20.0,
+        income_growth_rate=income_growth if income_growth > 0 else 2.5,
+        inflation_rate=inflation if inflation > 0 else 2.0,
+        investment_return=investment_return if investment_return > 0 else 5.0,
+        retirement_income_pct=retirement_income_pct if retirement_income_pct > 0 else 70.0,
+        current_savings=current_savings,
+    )
+
+    projections = run_projection(params)
+
+    # Prepare JSON data for charts
+    chart_data = {
+        "ages": [p.age for p in projections],
+        "gross_income": [p.gross_income for p in projections],
+        "total_tax": [p.total_tax for p in projections],
+        "after_tax_income": [p.after_tax_income for p in projections],
+        "spending": [p.spending for p in projections],
+        "annual_savings": [p.annual_savings for p in projections],
+        "cumulative_savings": [p.cumulative_savings for p in projections],
+        "effective_rate": [p.effective_rate for p in projections],
+    }
+
+    # Key milestones
+    retirement_year = next((p for p in projections if p.is_retired), None)
+    peak_income = max(projections, key=lambda p: p.gross_income)
+    peak_savings = max(projections, key=lambda p: p.cumulative_savings)
+
+    # Determine if this is an HTMX partial request
+    is_htmx = request.headers.get("HX-Request") == "true"
+
+    template_name = "components/projection_charts.html" if is_htmx else "client/projections.html"
+
+    return templates.TemplateResponse(template_name, {
+        "request": request,
+        "user": user,
+        "params": params,
+        "projections": projections,
+        "chart_data_json": json.dumps(chart_data),
+        "retirement_year": retirement_year,
+        "peak_income": peak_income,
+        "peak_savings": peak_savings,
+        "has_data": emp_income > 0 or other_income > 0,
+    })
