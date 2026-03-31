@@ -263,9 +263,10 @@ async def projections_page(
     request: Request,
     user: User = Depends(require_role(UserRole.CLIENT)),
     db: Session = Depends(get_db),
-    # Allow overrides via query params (from HTMX sliders)
+    # Allow overrides via query params (from HTMX sliders/inputs)
     retirement_age: int = 0,
     savings_rate: float = 0,
+    annual_spending: float = 0,
     income_growth: float = 0,
     inflation: float = 0,
     investment_return: float = 0,
@@ -282,6 +283,7 @@ async def projections_page(
     personal_data = _load_section_data(db, profile.id, "personal")
     income_data = _load_section_data(db, profile.id, "income")
     assets_data = _load_section_data(db, profile.id, "assets")
+    tax_data = _load_section_data(db, profile.id, "tax")
 
     # Calculate age from DOB
     dob_str = personal_data.get("date_of_birth", "")
@@ -297,26 +299,47 @@ async def projections_page(
     emp_income = _parse_number(income_data.get("employment_income"))
     other_income = _parse_number(income_data.get("other_income"))
 
-    # Current invested savings (exclude property)
-    current_savings = sum([
-        _parse_number(assets_data.get("chequing_savings")),
-        _parse_number(assets_data.get("rrsp")),
-        _parse_number(assets_data.get("tfsa")),
-        _parse_number(assets_data.get("other_investments")),
-    ])
+    # Account-level balances
+    current_rrsp = _parse_number(assets_data.get("rrsp"))
+    current_tfsa = _parse_number(assets_data.get("tfsa"))
+    current_non_reg = (
+        _parse_number(assets_data.get("chequing_savings"))
+        + _parse_number(assets_data.get("other_investments"))
+    )
+    current_savings = current_rrsp + current_tfsa + current_non_reg
 
-    # Build params — use query overrides if provided, otherwise smart defaults
+    # Contribution room
+    rrsp_room = _parse_number(tax_data.get("rrsp_room"))
+    tfsa_room = _parse_number(tax_data.get("tfsa_room"))
+
+    # Check if client has a home purchase goal (FHSA eligibility)
+    housing_status = profile.housing_status or ""
+    has_home_goal = db.query(Goal).filter(
+        Goal.client_id == profile.id,
+        Goal.category == "home",
+    ).first() is not None
+    fhsa_eligible = housing_status == "renter" and has_home_goal
+
+    # Build params
     params = ProjectionParams(
         current_age=current_age,
         retirement_age=retirement_age if retirement_age > 0 else 65,
         employment_income=emp_income,
         other_income=other_income,
+        annual_spending=annual_spending,  # 0 = use savings_rate mode
         savings_rate=savings_rate if savings_rate > 0 else 20.0,
         income_growth_rate=income_growth if income_growth > 0 else 2.5,
         inflation_rate=inflation if inflation > 0 else 2.0,
         investment_return=investment_return if investment_return > 0 else 5.0,
         retirement_income_pct=retirement_income_pct if retirement_income_pct > 0 else 70.0,
         current_savings=current_savings,
+        current_rrsp=current_rrsp,
+        current_tfsa=current_tfsa,
+        current_fhsa=0,
+        current_non_reg=current_non_reg,
+        rrsp_room=rrsp_room,
+        tfsa_room=tfsa_room,
+        fhsa_eligible=fhsa_eligible,
     )
 
     projections = run_projection(params)
@@ -331,6 +354,11 @@ async def projections_page(
         "annual_savings": [p.annual_savings for p in projections],
         "cumulative_savings": [p.cumulative_savings for p in projections],
         "effective_rate": [p.effective_rate for p in projections],
+        # Account balances for stacked area chart
+        "bal_rrsp": [p.bal_rrsp for p in projections],
+        "bal_tfsa": [p.bal_tfsa for p in projections],
+        "bal_fhsa": [p.bal_fhsa for p in projections],
+        "bal_non_reg": [p.bal_non_reg for p in projections],
     }
 
     # Key milestones

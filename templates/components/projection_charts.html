@@ -39,12 +39,12 @@
     </div>
 </div>
 
-<!-- Cumulative Savings Chart -->
+<!-- Wealth by Account Chart -->
 <div class="card chart-card">
-    <h2>Cumulative Savings</h2>
-    <p class="chart-subtitle">Total invested wealth over time</p>
+    <h2>Wealth by Account</h2>
+    <p class="chart-subtitle">Cumulative balances split across RRSP, TFSA, FHSA, and non-registered accounts</p>
     <div class="chart-container-projection">
-        <canvas id="cumulativeChart"></canvas>
+        <canvas id="accountChart"></canvas>
     </div>
 </div>
 
@@ -65,15 +65,21 @@
         <table class="projection-table">
             <thead>
                 <tr>
-                    <th class="col-fixed">Age</th>
-                    <th class="col-fixed">Year</th>
-                    <th class="col-money">Gross Income</th>
-                    <th class="col-money col-tax">Total Tax</th>
-                    <th class="col-pct col-tax">Rate</th>
-                    <th class="col-money col-accent">After Tax</th>
-                    <th class="col-money">Spending</th>
-                    <th class="col-money">Savings</th>
-                    <th class="col-money col-accent">Total Wealth</th>
+                    <th class="col-fixed" rowspan="2">Age</th>
+                    <th class="col-fixed" rowspan="2">Year</th>
+                    <th class="col-money" rowspan="2">Gross</th>
+                    <th class="col-money col-tax" rowspan="2">Tax</th>
+                    <th class="col-pct col-tax" rowspan="2">Rate</th>
+                    <th class="col-money col-accent" rowspan="2">Net</th>
+                    <th class="col-money" rowspan="2">Spending</th>
+                    <th class="col-money col-group-header" colspan="5">Savings</th>
+                </tr>
+                <tr>
+                    <th class="col-money col-sub">Total</th>
+                    <th class="col-money col-sub col-rrsp">RRSP</th>
+                    <th class="col-money col-sub col-tfsa">TFSA</th>
+                    <th class="col-money col-sub col-fhsa">FHSA</th>
+                    <th class="col-money col-sub col-nonreg">Non-Reg</th>
                 </tr>
             </thead>
             <tbody>
@@ -87,6 +93,43 @@
                     <td class="col-money col-accent">${{ "{:,.0f}".format(p.after_tax_income) }}</td>
                     <td class="col-money">${{ "{:,.0f}".format(p.spending) }}</td>
                     <td class="col-money {% if p.annual_savings > 0 %}col-savings{% endif %}">{% if p.annual_savings > 0 %}${{ "{:,.0f}".format(p.annual_savings) }}{% else %}—{% endif %}</td>
+                    <td class="col-money col-rrsp">{% if p.to_rrsp > 0 %}${{ "{:,.0f}".format(p.to_rrsp) }}{% else %}—{% endif %}</td>
+                    <td class="col-money col-tfsa">{% if p.to_tfsa > 0 %}${{ "{:,.0f}".format(p.to_tfsa) }}{% else %}—{% endif %}</td>
+                    <td class="col-money col-fhsa">{% if p.to_fhsa > 0 %}${{ "{:,.0f}".format(p.to_fhsa) }}{% else %}—{% endif %}</td>
+                    <td class="col-money col-nonreg">{% if p.to_non_reg > 0 %}${{ "{:,.0f}".format(p.to_non_reg) }}{% else %}—{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Account Balances Table -->
+<div class="card chart-card">
+    <h2>Account Balances Over Time</h2>
+    <p class="chart-subtitle">Cumulative balance in each account type, including investment returns.</p>
+    <div class="projection-table-wrapper">
+        <table class="projection-table">
+            <thead>
+                <tr>
+                    <th class="col-fixed">Age</th>
+                    <th class="col-fixed">Year</th>
+                    <th class="col-money col-rrsp">RRSP</th>
+                    <th class="col-money col-tfsa">TFSA</th>
+                    <th class="col-money col-fhsa">FHSA</th>
+                    <th class="col-money col-nonreg">Non-Reg</th>
+                    <th class="col-money col-accent">Total Wealth</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in projections %}
+                <tr class="{% if p.age == params.retirement_age %}row-retirement{% elif p.is_retired %}row-retired{% endif %}{% if p.age == params.current_age %} row-current{% endif %}{% if p.age % 10 == 0 %} row-decade{% endif %}">
+                    <td class="col-fixed">{{ p.age }}</td>
+                    <td class="col-fixed col-muted">{{ p.year }}</td>
+                    <td class="col-money col-rrsp">${{ "{:,.0f}".format(p.bal_rrsp) }}</td>
+                    <td class="col-money col-tfsa">${{ "{:,.0f}".format(p.bal_tfsa) }}</td>
+                    <td class="col-money col-fhsa">{% if p.bal_fhsa > 0 %}${{ "{:,.0f}".format(p.bal_fhsa) }}{% else %}—{% endif %}</td>
+                    <td class="col-money col-nonreg">${{ "{:,.0f}".format(p.bal_non_reg) }}</td>
                     <td class="col-money col-accent col-wealth">${{ "{:,.0f}".format(p.cumulative_savings) }}</td>
                 </tr>
                 {% endfor %}
@@ -176,27 +219,9 @@
         data: {
             labels: data.ages,
             datasets: [
-                {
-                    label: 'Gross Income',
-                    data: data.gross_income,
-                    borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59,130,246,0.08)',
-                    fill: true, tension: 0.3, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2.5,
-                },
-                {
-                    label: 'Total Tax',
-                    data: data.total_tax,
-                    borderColor: '#ef4444',
-                    backgroundColor: 'rgba(239,68,68,0.08)',
-                    fill: true, tension: 0.3, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2,
-                },
-                {
-                    label: 'After-Tax Income',
-                    data: data.after_tax_income,
-                    borderColor: '#10b981',
-                    backgroundColor: 'rgba(16,185,129,0.08)',
-                    fill: true, tension: 0.3, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2.5,
-                },
+                { label: 'Gross Income', data: data.gross_income, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.08)', fill: true, tension: 0.3, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2.5 },
+                { label: 'Total Tax', data: data.total_tax, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.08)', fill: true, tension: 0.3, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2 },
+                { label: 'After-Tax Income', data: data.after_tax_income, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)', fill: true, tension: 0.3, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2.5 },
             ]
         },
         options: commonOpts,
@@ -223,24 +248,26 @@
         plugins: [retirementLinePlugin],
     });
 
-    // 3. Cumulative Savings
-    new Chart(document.getElementById('cumulativeChart'), {
+    // 3. Wealth by Account (stacked area)
+    new Chart(document.getElementById('accountChart'), {
         type: 'line',
         data: {
             labels: data.ages,
-            datasets: [{
-                label: 'Total Invested Wealth',
-                data: data.cumulative_savings,
-                borderColor: '#8b5cf6',
-                backgroundColor: 'rgba(139,92,246,0.1)',
-                fill: true, tension: 0.3, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2.5,
-            }]
+            datasets: [
+                { label: 'RRSP', data: data.bal_rrsp, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.25)', fill: true, tension: 0.3, pointRadius: 0, pointHoverRadius: 4, borderWidth: 1.5 },
+                { label: 'TFSA', data: data.bal_tfsa, borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,0.25)', fill: true, tension: 0.3, pointRadius: 0, pointHoverRadius: 4, borderWidth: 1.5 },
+                { label: 'FHSA', data: data.bal_fhsa, borderColor: '#06b6d4', backgroundColor: 'rgba(6,182,212,0.25)', fill: true, tension: 0.3, pointRadius: 0, pointHoverRadius: 4, borderWidth: 1.5 },
+                { label: 'Non-Registered', data: data.bal_non_reg, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.25)', fill: true, tension: 0.3, pointRadius: 0, pointHoverRadius: 4, borderWidth: 1.5 },
+            ]
         },
         options: {
             ...commonOpts,
             scales: {
                 ...commonOpts.scales,
-                y: { ...commonOpts.scales.y, beginAtZero: false }
+                y: {
+                    ...commonOpts.scales.y,
+                    stacked: true,
+                }
             }
         },
         plugins: [retirementLinePlugin],

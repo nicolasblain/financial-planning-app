@@ -488,6 +488,41 @@ textarea { resize: vertical; min-height: 80px; }
     margin-top: 0.15rem;
 }
 
+.slider-hint {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 0.2rem;
+    font-style: italic;
+}
+
+/* Spending input */
+.spending-input-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+}
+
+.spending-dollar {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-right: none;
+    border-radius: 6px 0 0 6px;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.spending-input {
+    border-radius: 0 6px 6px 0 !important;
+    flex: 1;
+}
+
+input[type="range"]:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
 /* Milestones */
 .milestone-grid {
     display: grid;
@@ -622,3 +657,25 @@ textarea { resize: vertical; min-height: 80px; }
 
 /* Decade separators */
 .row-decade td { border-bottom: 2px solid var(--border); }
+
+/* Account-type column colors */
+.projection-table .col-group-header {
+    border-bottom: 2px solid #475569 !important;
+    text-align: center !important;
+    letter-spacing: 0.08em;
+}
+
+.projection-table .col-sub {
+    font-size: 0.62rem;
+    border-bottom: 1px solid #475569 !important;
+}
+
+.projection-table thead .col-rrsp { color: #93c5fd; }
+.projection-table thead .col-tfsa { color: #c4b5fd; }
+.projection-table thead .col-fhsa { color: #67e8f9; }
+.projection-table thead .col-nonreg { color: #fcd34d; }
+
+.projection-table tbody .col-rrsp { color: #2563eb; font-size: 0.74rem; }
+.projection-table tbody .col-tfsa { color: #7c3aed; font-size: 0.74rem; }
+.projection-table tbody .col-fhsa { color: #0891b2; font-size: 0.74rem; }
+.projection-table tbody .col-nonreg { color: #d97706; font-size: 0.74rem; }

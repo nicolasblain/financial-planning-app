@@ -26,7 +26,7 @@
           hx-get="/client/projections"
           hx-target="#projection-results"
           hx-swap="innerHTML"
-          hx-trigger="change delay:300ms">
+          hx-trigger="change delay:300ms, input[name='annual_spending'] changed delay:600ms">
         <div class="slider-grid">
             <div class="slider-group">
                 <label>Retirement Age: <strong id="retirement_age_val">{{ params.retirement_age }}</strong></label>
@@ -35,10 +35,24 @@
                 <div class="slider-range"><span>50</span><span>75</span></div>
             </div>
             <div class="slider-group">
+                <label>Annual Spending</label>
+                <div class="spending-input-row">
+                    <span class="spending-dollar">$</span>
+                    <input type="number" name="annual_spending" value="{{ params.annual_spending | int if params.annual_spending > 0 else '' }}"
+                           placeholder="Auto ({{ ((1 - params.savings_rate / 100) * projections[0].after_tax_income) | int | abs }}/yr)"
+                           class="spending-input" min="0" step="1000">
+                </div>
+                <div class="slider-hint">Leave blank to use savings rate below</div>
+            </div>
+            <div class="slider-group">
                 <label>Savings Rate: <strong id="savings_rate_val">{{ params.savings_rate }}%</strong></label>
                 <input type="range" name="savings_rate" min="5" max="60" value="{{ params.savings_rate }}" step="1"
-                       oninput="document.getElementById('savings_rate_val').textContent = this.value + '%'">
+                       oninput="document.getElementById('savings_rate_val').textContent = this.value + '%'"
+                       {% if params.annual_spending > 0 %}disabled{% endif %}>
                 <div class="slider-range"><span>5%</span><span>60%</span></div>
+                {% if params.annual_spending > 0 %}
+                <div class="slider-hint">Overridden by spending amount above</div>
+                {% endif %}
             </div>
             <div class="slider-group">
                 <label>Income Growth: <strong id="income_growth_val">{{ params.income_growth_rate }}%</strong></label>
@@ -77,8 +91,15 @@
 // Destroy ALL Chart.js instances before HTMX swaps new content in
 document.body.addEventListener('htmx:beforeSwap', function(evt) {
     if (evt.detail.target && evt.detail.target.id === 'projection-results') {
-        // Destroy every chart instance that currently exists
         Object.values(Chart.instances).forEach(chart => chart.destroy());
+    }
+});
+
+// Toggle savings rate slider when spending is entered
+document.addEventListener('input', function(e) {
+    if (e.target.name === 'annual_spending') {
+        const slider = document.querySelector('input[name="savings_rate"]');
+        if (slider) slider.disabled = e.target.value !== '' && e.target.value > 0;
     }
 });
 </script>
