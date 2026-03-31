@@ -64,8 +64,8 @@
         <table class="projection-table">
             <thead>
                 <tr>
-                    <th>Age</th>
-                    <th>Year</th>
+                    <th class="col-age">Age</th>
+                    <th class="col-year">Year</th>
                     <th>Gross Income</th>
                     <th>Total Tax</th>
                     <th>Tax Rate</th>
@@ -77,19 +77,17 @@
             </thead>
             <tbody>
                 {% for p in projections %}
-                {% if loop.index0 % 5 == 0 or p.age == params.retirement_age or p.age == params.current_age %}
-                <tr class="{% if p.is_retired %}retired-row{% endif %}{% if p.age == params.retirement_age %} retirement-marker{% endif %}">
-                    <td>{{ p.age }}</td>
-                    <td>{{ p.year }}</td>
+                <tr class="{% if p.is_retired %}retired-row{% endif %}{% if p.age == params.retirement_age %} retirement-marker{% endif %}{% if loop.index0 % 2 == 0 %} row-even{% endif %}{% if p.age == params.current_age %} current-age-row{% endif %}">
+                    <td class="col-age">{{ p.age }}</td>
+                    <td class="col-year">{{ p.year }}</td>
                     <td>${{ "{:,.0f}".format(p.gross_income) }}</td>
                     <td>${{ "{:,.0f}".format(p.total_tax) }}</td>
                     <td>{{ p.effective_rate }}%</td>
-                    <td>${{ "{:,.0f}".format(p.after_tax_income) }}</td>
+                    <td class="col-highlight">${{ "{:,.0f}".format(p.after_tax_income) }}</td>
                     <td>${{ "{:,.0f}".format(p.spending) }}</td>
                     <td>${{ "{:,.0f}".format(p.annual_savings) }}</td>
-                    <td>${{ "{:,.0f}".format(p.cumulative_savings) }}</td>
+                    <td class="col-highlight">${{ "{:,.0f}".format(p.cumulative_savings) }}</td>
                 </tr>
-                {% endif %}
                 {% endfor %}
             </tbody>
         </table>
@@ -99,6 +97,12 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script>
 (function() {
+    // Destroy any existing charts to prevent stacking on HTMX swaps
+    ['incomeTaxChart', 'spendingSavingsChart', 'cumulativeChart', 'taxRateChart'].forEach(id => {
+        const existing = Chart.getChart(id);
+        if (existing) existing.destroy();
+    });
+
     const data = {{ chart_data_json | safe }};
     const retirementAge = {{ params.retirement_age }};
 
@@ -132,12 +136,13 @@
     };
 
     const dollarTick = v => {
+        if (Math.abs(v) >= 1_000_000_000) return '$' + (v / 1_000_000_000).toFixed(1) + 'B';
         if (Math.abs(v) >= 1_000_000) return '$' + (v / 1_000_000).toFixed(1) + 'M';
         if (Math.abs(v) >= 1_000) return '$' + (v / 1_000).toFixed(0) + 'k';
         return '$' + v;
     };
 
-    const dollarTooltip = ctx => '$' + Number(ctx.parsed.y).toLocaleString('en-CA', {maximumFractionDigits: 0});
+    const dollarLabel = ctx => ctx.dataset.label + ': $' + Number(ctx.parsed.y).toLocaleString('en-CA', {maximumFractionDigits: 0});
 
     const commonOpts = {
         responsive: true,
@@ -149,15 +154,16 @@
                 ticks: { maxTicksLimit: 15, callback: (v, i) => data.ages[i] }
             },
             y: {
+                beginAtZero: true,
                 grid: { color: 'rgba(0,0,0,0.04)' },
-                ticks: { callback: dollarTick }
+                ticks: { callback: dollarTick, maxTicksLimit: 8 }
             }
         },
         plugins: {
             tooltip: {
                 callbacks: {
                     title: ctx => 'Age ' + data.ages[ctx[0].dataIndex],
-                    label: ctx => ctx.dataset.label + ': $' + Number(ctx.parsed.y).toLocaleString('en-CA', {maximumFractionDigits: 0})
+                    label: dollarLabel
                 }
             },
             legend: {
@@ -244,7 +250,11 @@
         plugins: [retirementLinePlugin],
     });
 
-    // 3. Cumulative Savings
+    // 3. Cumulative Savings — use logarithmic scale if values span a huge range
+    const maxSavings = Math.max(...data.cumulative_savings);
+    const minSavings = Math.min(...data.cumulative_savings.filter(v => v > 0));
+    const useLog = maxSavings > 0 && minSavings > 0 && (maxSavings / minSavings) > 500;
+
     new Chart(document.getElementById('cumulativeChart'), {
         type: 'line',
         data: {
@@ -261,7 +271,20 @@
                 borderWidth: 2.5,
             }]
         },
-        options: { ...commonOpts },
+        options: {
+            ...commonOpts,
+            scales: {
+                ...commonOpts.scales,
+                y: {
+                    ...commonOpts.scales.y,
+                    type: useLog ? 'logarithmic' : 'linear',
+                    ticks: {
+                        callback: dollarTick,
+                        maxTicksLimit: 8,
+                    },
+                }
+            }
+        },
         plugins: [retirementLinePlugin],
     });
 
@@ -288,7 +311,7 @@
                 ...commonOpts.scales,
                 y: {
                     ...commonOpts.scales.y,
-                    ticks: { callback: v => v + '%' },
+                    ticks: { callback: v => v + '%', maxTicksLimit: 8 },
                     min: 0,
                     max: 50,
                 }

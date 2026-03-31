@@ -537,44 +537,71 @@ textarea { resize: vertical; min-height: 80px; }
 /* Projection Table */
 .projection-table-wrapper {
     overflow-x: auto;
+    overflow-y: auto;
+    max-height: 600px;
     margin-top: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
 }
 
 .projection-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.82rem;
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
 }
 
 .projection-table th {
-    background: var(--bg);
-    padding: 0.6rem 0.75rem;
+    background: var(--surface);
+    padding: 0.55rem 0.7rem;
     text-align: right;
-    font-weight: 600;
-    font-size: 0.75rem;
+    font-weight: 700;
+    font-size: 0.7rem;
     text-transform: uppercase;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.04em;
     color: var(--text-muted);
-    border-bottom: 2px solid var(--border);
+    border-bottom: 2px solid var(--primary);
     position: sticky;
     top: 0;
+    z-index: 1;
 }
 
 .projection-table th:first-child,
-.projection-table td:first-child { text-align: left; }
+.projection-table td:first-child { text-align: center; }
+
+.projection-table .col-age { width: 50px; text-align: center; font-weight: 600; }
+.projection-table .col-year { width: 55px; text-align: center; color: var(--text-muted); }
 
 .projection-table td {
-    padding: 0.5rem 0.75rem;
+    padding: 0.4rem 0.7rem;
     text-align: right;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+    white-space: nowrap;
 }
 
-.projection-table tr:hover { background: rgba(59, 130, 246, 0.03); }
+.projection-table .col-highlight { font-weight: 600; }
+
+.projection-table .row-even { background: rgba(0,0,0,0.015); }
+
+.projection-table tbody tr:hover { background: rgba(59, 130, 246, 0.06); }
 
 .retired-row { color: var(--text-muted); }
+.retired-row .col-highlight { color: var(--text-muted); }
+
+.current-age-row {
+    background: rgba(16, 185, 129, 0.06) !important;
+    font-weight: 600;
+}
 
 .retirement-marker {
-    border-top: 2px dashed var(--primary) !important;
-    font-weight: 600;
+    border-top: 2.5px solid var(--primary) !important;
+    font-weight: 700;
     color: var(--primary) !important;
+}
+
+.retirement-marker .col-highlight { color: var(--primary); }
+
+/* Decade separators for readability */
+.projection-table tbody tr:nth-child(10n) td {
+    border-bottom: 1.5px solid var(--border);
 }
