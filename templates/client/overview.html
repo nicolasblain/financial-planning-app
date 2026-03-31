@@ -1,0 +1,291 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Financial Overview — Financial Planning{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Your Financial Overview</h1>
+    <a href="/client/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+</div>
+
+{% if not has_data %}
+<div class="card" style="text-align: center; padding: 3rem;">
+    <h2>No financial data yet</h2>
+    <p style="color: var(--text-muted); margin: 1rem 0;">Complete your intake sections to see your financial picture here.</p>
+    <a href="/client/dashboard" class="btn btn-primary">Start Data Gathering</a>
+</div>
+{% else %}
+
+<!-- Net Worth Hero -->
+<div class="card net-worth-hero">
+    <h3>Net Worth</h3>
+    <div class="net-worth-value {% if net_worth >= 0 %}positive{% else %}negative{% endif %}">
+        ${{ "{:,.0f}".format(net_worth) }}
+    </div>
+    <div class="net-worth-breakdown">
+        <span class="nw-assets">Assets: ${{ "{:,.0f}".format(total_assets) }}</span>
+        <span class="nw-separator">—</span>
+        <span class="nw-liabilities">Liabilities: ${{ "{:,.0f}".format(total_liabilities) }}</span>
+    </div>
+</div>
+
+<!-- Charts Row: Assets + Liabilities -->
+<div class="chart-grid">
+    <div class="card chart-card">
+        <h2>Assets Breakdown</h2>
+        <p class="chart-total">Total: ${{ "{:,.0f}".format(total_assets) }}</p>
+        <div class="chart-container">
+            <canvas id="assetsChart"></canvas>
+        </div>
+        <div id="assetsLegend" class="chart-legend"></div>
+    </div>
+    <div class="card chart-card">
+        <h2>Liabilities Breakdown</h2>
+        <p class="chart-total">Total: ${{ "{:,.0f}".format(total_liabilities) }}</p>
+        <div class="chart-container">
+            <canvas id="liabilitiesChart"></canvas>
+        </div>
+        <div id="liabilitiesLegend" class="chart-legend"></div>
+    </div>
+</div>
+
+<!-- Net Worth Bar -->
+<div class="card chart-card">
+    <h2>Assets vs. Liabilities</h2>
+    <div class="chart-container-wide">
+        <canvas id="netWorthChart"></canvas>
+    </div>
+</div>
+
+<!-- Income + Tax Room Row -->
+<div class="chart-grid">
+    <div class="card chart-card">
+        <h2>Annual Income</h2>
+        <p class="chart-total">Total: ${{ "{:,.0f}".format(total_income) }}</p>
+        <div class="chart-container">
+            <canvas id="incomeChart"></canvas>
+        </div>
+        <div id="incomeLegend" class="chart-legend"></div>
+    </div>
+    <div class="card chart-card">
+        <h2>Contribution Room</h2>
+        <div class="contribution-room">
+            <div class="contrib-item">
+                <div class="contrib-label">RRSP Room</div>
+                <div class="contrib-value">${{ "{:,.0f}".format(tax_room["RRSP Room"]) }}</div>
+                <div class="contrib-bar">
+                    <div class="contrib-fill rrsp" style="width: {% if tax_room['RRSP Room'] > 0 %}100{% else %}0{% endif %}%"></div>
+                </div>
+            </div>
+            <div class="contrib-item">
+                <div class="contrib-label">TFSA Room</div>
+                <div class="contrib-value">${{ "{:,.0f}".format(tax_room["TFSA Room"]) }}</div>
+                <div class="contrib-bar">
+                    <div class="contrib-fill tfsa" style="width: {% if tax_room['TFSA Room'] > 0 %}100{% else %}0{% endif %}%"></div>
+                </div>
+            </div>
+        </div>
+
+        <h2 style="margin-top: 1.5rem;">Protection</h2>
+        <div class="protection-grid">
+            <div class="protection-item">
+                <div class="protection-label">Life Insurance</div>
+                <div class="protection-value">${{ "{:,.0f}".format(life_insurance) }}</div>
+            </div>
+            <div class="protection-item">
+                <div class="protection-label">Disability</div>
+                <div class="protection-value">{{ disability_insurance | replace("_", " ") | title }}</div>
+            </div>
+            <div class="protection-item">
+                <div class="protection-label">Group Benefits</div>
+                <div class="protection-value">{{ "Yes" if group_benefits == "yes" else "No" }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Goals Timeline -->
+{% if goals %}
+<div class="card chart-card">
+    <h2>Goals Timeline</h2>
+    <div class="goals-timeline">
+        {% set horizon_order = {"1_year": 1, "3_years": 2, "5_years": 3, "10_years": 4, "20_years": 5, "20_plus": 6} %}
+        {% for goal in goals | sort(attribute='time_horizon') %}
+        <div class="timeline-item">
+            <div class="timeline-dot" style="background: {{ ['#3b82f6','#8b5cf6','#06b6d4','#f59e0b','#10b981','#ef4444'][loop.index0 % 6] }}"></div>
+            <div class="timeline-content">
+                <strong>{{ goal.title }}</strong>
+                <div class="timeline-meta">
+                    {% if goal.category %}<span class="timeline-tag">{{ goal.category | title }}</span>{% endif %}
+                    {% if goal.time_horizon %}<span class="timeline-horizon">{{ goal.time_horizon | replace("_", " ") }}</span>{% endif %}
+                </div>
+                {% if goal.description %}
+                <div class="timeline-desc">{{ goal.description }}</div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const assets = {{ assets_json | safe }};
+    const liabilities = {{ liabilities_json | safe }};
+    const income = {{ income_json | safe }};
+
+    const COLORS = ['#3b82f6', '#8b5cf6', '#06b6d4', '#f59e0b', '#10b981', '#ef4444'];
+    const COLORS_LIGHT = ['rgba(59,130,246,0.15)', 'rgba(139,92,246,0.15)', 'rgba(6,182,212,0.15)', 'rgba(245,158,11,0.15)', 'rgba(16,185,129,0.15)', 'rgba(239,68,68,0.15)'];
+
+    Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    Chart.defaults.font.size = 13;
+    Chart.defaults.plugins.legend.display = false;
+
+    function filterZero(obj) {
+        const labels = [], values = [];
+        for (const [k, v] of Object.entries(obj)) {
+            if (v > 0) { labels.push(k); values.push(v); }
+        }
+        return { labels, values };
+    }
+
+    function buildLegend(containerId, labels, colors) {
+        const el = document.getElementById(containerId);
+        if (!el) return;
+        el.innerHTML = labels.map((l, i) =>
+            `<div class="legend-item"><span class="legend-dot" style="background:${colors[i % colors.length]}"></span>${l}</div>`
+        ).join('');
+    }
+
+    function currencyTooltip(context) {
+        const v = context.parsed || context.parsed.y || 0;
+        const value = typeof v === 'object' ? v.y || v : v;
+        return '$' + Number(value).toLocaleString('en-CA', {maximumFractionDigits: 0});
+    }
+
+    // Assets Donut
+    const a = filterZero(assets);
+    if (a.values.length > 0) {
+        new Chart(document.getElementById('assetsChart'), {
+            type: 'doughnut',
+            data: {
+                labels: a.labels,
+                datasets: [{
+                    data: a.values,
+                    backgroundColor: COLORS.slice(0, a.labels.length),
+                    borderWidth: 2,
+                    borderColor: '#fff',
+                    hoverOffset: 8,
+                }]
+            },
+            options: {
+                cutout: '62%',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: {
+                        callbacks: { label: ctx => ctx.label + ': $' + ctx.parsed.toLocaleString('en-CA') }
+                    }
+                }
+            }
+        });
+        buildLegend('assetsLegend', a.labels, COLORS);
+    }
+
+    // Liabilities Donut
+    const l = filterZero(liabilities);
+    if (l.values.length > 0) {
+        new Chart(document.getElementById('liabilitiesChart'), {
+            type: 'doughnut',
+            data: {
+                labels: l.labels,
+                datasets: [{
+                    data: l.values,
+                    backgroundColor: ['#ef4444', '#f97316', '#eab308', '#f43f5e', '#dc2626'],
+                    borderWidth: 2,
+                    borderColor: '#fff',
+                    hoverOffset: 8,
+                }]
+            },
+            options: {
+                cutout: '62%',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: {
+                        callbacks: { label: ctx => ctx.label + ': $' + ctx.parsed.toLocaleString('en-CA') }
+                    }
+                }
+            }
+        });
+        buildLegend('liabilitiesLegend', l.labels, ['#ef4444', '#f97316', '#eab308', '#f43f5e', '#dc2626']);
+    }
+
+    // Net Worth Bar
+    new Chart(document.getElementById('netWorthChart'), {
+        type: 'bar',
+        data: {
+            labels: ['Assets', 'Liabilities', 'Net Worth'],
+            datasets: [{
+                data: [{{ total_assets }}, {{ total_liabilities }}, {{ net_worth }}],
+                backgroundColor: ['#3b82f6', '#ef4444', {{ 'true' if net_worth >= 0 else 'false' }} ? '#10b981' : '#ef4444'],
+                borderRadius: 6,
+                barPercentage: 0.5,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: v => '$' + (v/1000).toFixed(0) + 'k'
+                    },
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                },
+                x: { grid: { display: false } }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: { label: ctx => '$' + ctx.parsed.y.toLocaleString('en-CA') }
+                }
+            }
+        }
+    });
+
+    // Income Donut
+    const inc = filterZero(income);
+    if (inc.values.length > 0) {
+        new Chart(document.getElementById('incomeChart'), {
+            type: 'doughnut',
+            data: {
+                labels: inc.labels,
+                datasets: [{
+                    data: inc.values,
+                    backgroundColor: ['#10b981', '#06b6d4'],
+                    borderWidth: 2,
+                    borderColor: '#fff',
+                    hoverOffset: 8,
+                }]
+            },
+            options: {
+                cutout: '62%',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: {
+                        callbacks: { label: ctx => ctx.label + ': $' + ctx.parsed.toLocaleString('en-CA') }
+                    }
+                }
+            }
+        });
+        buildLegend('incomeLegend', inc.labels, ['#10b981', '#06b6d4']);
+    }
+});
+</script>
+{% endblock %}

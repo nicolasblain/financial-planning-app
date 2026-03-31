@@ -1,5 +1,7 @@
+import json
+
 from fastapi import APIRouter, Depends, Request, Form, UploadFile, File
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
@@ -82,7 +84,6 @@ async def save_intake(
 ):
     profile = db.query(ClientProfile).filter(ClientProfile.user_id == user.id).first()
     form_data = await request.form()
-    import json
     data_dict = {k: v for k, v in form_data.items() if k != "is_complete"}
 
     existing = db.query(IntakeResponse).filter(
@@ -150,4 +151,108 @@ async def add_goal(
     return templates.TemplateResponse("components/goal_item.html", {
         "request": request,
         "goal": goal,
+    })
+
+
+def _parse_number(val: str) -> float:
+    try:
+        return float(val)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _load_section_data(db: Session, profile_id: int, section_key: str) -> dict:
+    resp = db.query(IntakeResponse).filter(
+        IntakeResponse.client_id == profile_id,
+        IntakeResponse.section_key == section_key,
+    ).first()
+    if resp and resp.data:
+        return json.loads(resp.data)
+    return {}
+
+
+@router.get("/overview", response_class=HTMLResponse)
+async def financial_overview(
+    request: Request,
+    user: User = Depends(require_role(UserRole.CLIENT)),
+    db: Session = Depends(get_db),
+):
+    profile = db.query(ClientProfile).filter(ClientProfile.user_id == user.id).first()
+    if not profile:
+        return RedirectResponse(url="/client/dashboard")
+
+    # Gather all intake data
+    income_data = _load_section_data(db, profile.id, "income")
+    assets_data = _load_section_data(db, profile.id, "assets")
+    liabilities_data = _load_section_data(db, profile.id, "liabilities")
+    protection_data = _load_section_data(db, profile.id, "protection")
+    tax_data = _load_section_data(db, profile.id, "tax")
+
+    # Assets breakdown
+    assets = {
+        "Chequing & Savings": _parse_number(assets_data.get("chequing_savings")),
+        "RRSP": _parse_number(assets_data.get("rrsp")),
+        "TFSA": _parse_number(assets_data.get("tfsa")),
+        "Other Investments": _parse_number(assets_data.get("other_investments")),
+        "Property": _parse_number(assets_data.get("property_value")),
+    }
+    total_assets = sum(assets.values())
+
+    # Liabilities breakdown
+    liabilities = {
+        "Mortgage": _parse_number(liabilities_data.get("mortgage")),
+        "Car Loan": _parse_number(liabilities_data.get("car_loan")),
+        "Student Loan": _parse_number(liabilities_data.get("student_loan")),
+        "Credit Cards": _parse_number(liabilities_data.get("credit_cards")),
+        "Other Debts": _parse_number(liabilities_data.get("other_debts")),
+    }
+    total_liabilities = sum(liabilities.values())
+
+    # Income breakdown
+    income = {
+        "Employment": _parse_number(income_data.get("employment_income")),
+        "Other": _parse_number(income_data.get("other_income")),
+    }
+    total_income = sum(income.values())
+
+    # Net worth
+    net_worth = total_assets - total_liabilities
+
+    # Tax room
+    tax_room = {
+        "RRSP Room": _parse_number(tax_data.get("rrsp_room")),
+        "TFSA Room": _parse_number(tax_data.get("tfsa_room")),
+    }
+
+    # Protection
+    life_insurance = _parse_number(protection_data.get("life_insurance"))
+    disability_insurance = protection_data.get("disability_insurance", "none")
+    group_benefits = protection_data.get("group_benefits", "no")
+
+    # Goals
+    goals = db.query(Goal).filter(Goal.client_id == profile.id).order_by(Goal.priority.desc()).all()
+
+    # Check if there is any data at all
+    has_data = total_assets > 0 or total_liabilities > 0 or total_income > 0
+
+    return templates.TemplateResponse("client/overview.html", {
+        "request": request,
+        "user": user,
+        "has_data": has_data,
+        "assets": assets,
+        "total_assets": total_assets,
+        "liabilities": liabilities,
+        "total_liabilities": total_liabilities,
+        "income": income,
+        "total_income": total_income,
+        "net_worth": net_worth,
+        "tax_room": tax_room,
+        "life_insurance": life_insurance,
+        "disability_insurance": disability_insurance,
+        "group_benefits": group_benefits,
+        "goals": goals,
+        # JSON for Chart.js
+        "assets_json": json.dumps(assets),
+        "liabilities_json": json.dumps(liabilities),
+        "income_json": json.dumps(income),
     })
