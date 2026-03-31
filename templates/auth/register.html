@@ -1,0 +1,39 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Register — Financial Planning{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <h1>Create Account</h1>
+    <div class="card">
+        {% if error %}
+        <div class="error-message">{{ error }}</div>
+        {% endif %}
+        <form method="post" action="/register">
+            <div class="form-group">
+                <label for="full_name">Full Name</label>
+                <input type="text" id="full_name" name="full_name" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required minlength="8">
+            </div>
+            <div class="form-group">
+                <label for="role">I am a...</label>
+                <select id="role" name="role">
+                    <option value="client">Client</option>
+                    <option value="planner">Financial Planner</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%">Create Account</button>
+        </form>
+    </div>
+    <div class="auth-footer">
+        Already have an account? <a href="/login">Sign in</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Dashboard — Financial Planning{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Welcome, {{ user.full_name }}</h1>
+</div>
+
+<div class="card">
+    <h2>Your Planning Cycle</h2>
+    <h3>Current stage: {{ profile.cycle_stage.value | replace("_", " ") | title }}</h3>
+</div>
+
+<div class="card">
+    <h2>Data Gathering</h2>
+    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+        Complete each section so your planner has everything needed to build your plan.
+    </p>
+    <div class="progress-bar">
+        <div class="progress-fill" style="width: {{ intake_progress }}%"></div>
+    </div>
+    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+        {{ completed_sections | length }} of {{ sections | length }} sections complete
+    </p>
+    <div class="section-list">
+        {% for section in sections %}
+        <a href="/client/intake/{{ section.key }}" class="section-item">
+            <div>
+                <strong>{{ section.title }}</strong>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">{{ section.description }}</div>
+            </div>
+            {% if section.key in completed_sections %}
+            <span class="status status-complete">Complete</span>
+            {% else %}
+            <span class="status status-pending">To do</span>
+            {% endif %}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="page-header" style="margin-bottom: 0.75rem;">
+        <h2>Your Goals</h2>
+        <a href="/client/goals" class="btn btn-secondary">Manage Goals</a>
+    </div>
+    {% if goals %}
+        {% for goal in goals %}
+        <div class="goal-item">
+            <div>
+                <strong>{{ goal.title }}</strong>
+                {% if goal.description %}
+                <div style="font-size: 0.85rem; color: var(--text-muted);">{{ goal.description }}</div>
+                {% endif %}
+            </div>
+            <div class="goal-meta">
+                {% if goal.category %}{{ goal.category | title }}{% endif %}
+                {% if goal.time_horizon %} · {{ goal.time_horizon | replace("_", " ") }}{% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p style="color: var(--text-muted); font-size: 0.9rem;">No goals set yet. Start by reflecting on your priorities.</p>
+    {% endif %}
+</div>
+{% endblock %}

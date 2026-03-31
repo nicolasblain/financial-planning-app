@@ -1,0 +1,12 @@
+<div class="goal-item">
+    <div>
+        <strong>{{ goal.title }}</strong>
+        {% if goal.description %}
+        <div style="font-size: 0.85rem; color: var(--text-muted);">{{ goal.description }}</div>
+        {% endif %}
+    </div>
+    <div class="goal-meta">
+        {% if goal.category %}{{ goal.category | title }}{% endif %}
+        {% if goal.time_horizon %} · {{ goal.time_horizon | replace("_", " ") }}{% endif %}
+    </div>
+</div>

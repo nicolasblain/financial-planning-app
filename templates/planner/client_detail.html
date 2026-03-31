@@ -1,0 +1,48 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ client.user.full_name }} — Planner{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ client.user.full_name }}</h1>
+    <a href="/planner/pipeline" class="btn btn-secondary">Back to Pipeline</a>
+</div>
+
+<div class="card">
+    <h2>Cycle Stage</h2>
+    <p>{{ client.cycle_stage.value | replace("_", " ") | title }}</p>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+    <div class="card">
+        <h2>Completed Sections</h2>
+        {% if completed_sections %}
+        <ul style="list-style: none;">
+            {% for section in completed_sections %}
+            <li style="padding: 0.4rem 0; color: var(--success); font-size: 0.9rem;">{{ section | title }}</li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p style="color: var(--text-muted); font-size: 0.9rem;">No sections completed yet.</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h2>Missing Data</h2>
+        {% if missing_sections %}
+        <ul class="missing-list">
+            {% for section in missing_sections %}
+            <li>{{ section | title }}</li>
+            {% endfor %}
+        </ul>
+        <button class="btn btn-primary" style="margin-top: 1rem;"
+                hx-post="/planner/client/{{ client.id }}/nudge"
+                hx-swap="outerHTML">
+            Send Reminder
+        </button>
+        {% else %}
+        <p style="color: var(--success); font-size: 0.9rem;">All sections complete.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

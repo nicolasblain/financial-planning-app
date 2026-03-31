@@ -1,0 +1,76 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Goals — Financial Planning{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Your Goals</h1>
+    <a href="/client/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+</div>
+
+<div class="card">
+    <p style="color: var(--text-muted); margin-bottom: 1rem;">
+        What matters most to you? Think beyond the numbers — what does financial security look like
+        for you in 5, 10, and 20 years?
+    </p>
+
+    <form hx-post="/client/goals"
+          hx-target="#goal-list"
+          hx-swap="beforeend"
+          hx-on::after-request="this.reset()">
+        <div class="form-group">
+            <label for="title">Goal</label>
+            <input type="text" id="title" name="title" placeholder="e.g., Buy a home, retire at 60, fund children's education" required>
+        </div>
+        <div class="form-group">
+            <label for="description">Why is this important to you?</label>
+            <textarea id="description" name="description" placeholder="What would achieving this goal mean for you and your family?"></textarea>
+        </div>
+        <div style="display: flex; gap: 1rem;">
+            <div class="form-group" style="flex:1">
+                <label for="category">Category</label>
+                <select id="category" name="category">
+                    <option value="">Select...</option>
+                    <option value="retirement">Retirement</option>
+                    <option value="home">Home Purchase</option>
+                    <option value="education">Education</option>
+                    <option value="protection">Protection</option>
+                    <option value="debt">Debt Repayment</option>
+                    <option value="lifestyle">Lifestyle</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="form-group" style="flex:1">
+                <label for="time_horizon">Time Horizon</label>
+                <select id="time_horizon" name="time_horizon">
+                    <option value="">Select...</option>
+                    <option value="1_year">Within 1 year</option>
+                    <option value="3_years">1–3 years</option>
+                    <option value="5_years">3–5 years</option>
+                    <option value="10_years">5–10 years</option>
+                    <option value="20_years">10–20 years</option>
+                    <option value="20_plus">20+ years</option>
+                </select>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Add Goal</button>
+    </form>
+</div>
+
+<div id="goal-list">
+    {% for goal in goals %}
+    <div class="goal-item">
+        <div>
+            <strong>{{ goal.title }}</strong>
+            {% if goal.description %}
+            <div style="font-size: 0.85rem; color: var(--text-muted);">{{ goal.description }}</div>
+            {% endif %}
+        </div>
+        <div class="goal-meta">
+            {% if goal.category %}{{ goal.category | title }}{% endif %}
+            {% if goal.time_horizon %} · {{ goal.time_horizon | replace("_", " ") }}{% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

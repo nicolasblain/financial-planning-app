@@ -1,0 +1,153 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ section.title }} — Intake{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ section.title }}</h1>
+    <a href="/client/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+</div>
+
+<div class="card">
+    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">{{ section.description }}</p>
+
+    <form hx-post="/client/intake/{{ section.key }}"
+          hx-target="#save-status"
+          hx-swap="innerHTML">
+
+        {% if section.key == "personal" %}
+        <div class="form-group">
+            <label for="date_of_birth">Date of Birth</label>
+            <input type="text" id="date_of_birth" name="date_of_birth" placeholder="YYYY-MM-DD">
+        </div>
+        <div class="form-group">
+            <label for="civil_status">Civil Status</label>
+            <select id="civil_status" name="civil_status">
+                <option value="">Select...</option>
+                <option value="single">Single</option>
+                <option value="married">Married</option>
+                <option value="common_law">Common-law</option>
+                <option value="separated">Separated</option>
+                <option value="divorced">Divorced</option>
+                <option value="widowed">Widowed</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="dependents">Number of Dependents</label>
+            <input type="number" id="dependents" name="dependents" min="0" value="0">
+        </div>
+
+        {% elif section.key == "income" %}
+        <div class="form-group">
+            <label for="employment_income">Annual Employment Income</label>
+            <div class="hint">Gross salary before deductions</div>
+            <input type="number" id="employment_income" name="employment_income" placeholder="$">
+        </div>
+        <div class="form-group">
+            <label for="other_income">Other Income</label>
+            <div class="hint">Side business, rental income, investment income, etc.</div>
+            <input type="number" id="other_income" name="other_income" placeholder="$">
+        </div>
+        <div class="form-group">
+            <label for="income_notes">Notes</label>
+            <textarea id="income_notes" name="income_notes" placeholder="Any relevant details about your income situation..."></textarea>
+        </div>
+
+        {% elif section.key == "assets" %}
+        <div class="form-group">
+            <label for="chequing_savings">Chequing & Savings</label>
+            <input type="number" id="chequing_savings" name="chequing_savings" placeholder="$">
+        </div>
+        <div class="form-group">
+            <label for="rrsp">RRSP Balance</label>
+            <input type="number" id="rrsp" name="rrsp" placeholder="$">
+        </div>
+        <div class="form-group">
+            <label for="tfsa">TFSA Balance</label>
+            <input type="number" id="tfsa" name="tfsa" placeholder="$">
+        </div>
+        <div class="form-group">
+            <label for="other_investments">Other Investments</label>
+            <input type="number" id="other_investments" name="other_investments" placeholder="$">
+        </div>
+        <div class="form-group">
+            <label for="property_value">Property Value (if applicable)</label>
+            <input type="number" id="property_value" name="property_value" placeholder="$">
+        </div>
+
+        {% elif section.key == "liabilities" %}
+        <div class="form-group">
+            <label for="mortgage">Mortgage Balance</label>
+            <input type="number" id="mortgage" name="mortgage" placeholder="$">
+        </div>
+        <div class="form-group">
+            <label for="car_loan">Car Loan</label>
+            <input type="number" id="car_loan" name="car_loan" placeholder="$">
+        </div>
+        <div class="form-group">
+            <label for="student_loan">Student Loan</label>
+            <input type="number" id="student_loan" name="student_loan" placeholder="$">
+        </div>
+        <div class="form-group">
+            <label for="credit_cards">Credit Card Balances</label>
+            <input type="number" id="credit_cards" name="credit_cards" placeholder="$">
+        </div>
+        <div class="form-group">
+            <label for="other_debts">Other Debts</label>
+            <input type="number" id="other_debts" name="other_debts" placeholder="$">
+        </div>
+
+        {% elif section.key == "protection" %}
+        <div class="form-group">
+            <label for="life_insurance">Life Insurance Coverage</label>
+            <div class="hint">Total death benefit across all policies</div>
+            <input type="number" id="life_insurance" name="life_insurance" placeholder="$">
+        </div>
+        <div class="form-group">
+            <label for="disability_insurance">Disability Insurance</label>
+            <select id="disability_insurance" name="disability_insurance">
+                <option value="">Select...</option>
+                <option value="none">None</option>
+                <option value="group">Through employer (group)</option>
+                <option value="individual">Individual policy</option>
+                <option value="both">Both group and individual</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="group_benefits">Do you have group benefits?</label>
+            <select id="group_benefits" name="group_benefits">
+                <option value="">Select...</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+            </select>
+            <div class="hint">If yes, please upload your benefits booklet in the documents section.</div>
+        </div>
+
+        {% elif section.key == "tax" %}
+        <div class="form-group">
+            <label for="rrsp_room">RRSP Contribution Room</label>
+            <div class="hint">Found on your latest Notice of Assessment from CRA</div>
+            <input type="number" id="rrsp_room" name="rrsp_room" placeholder="$">
+        </div>
+        <div class="form-group">
+            <label for="tfsa_room">TFSA Contribution Room</label>
+            <input type="number" id="tfsa_room" name="tfsa_room" placeholder="$">
+        </div>
+        <div class="form-group">
+            <label for="tax_notes">Additional Tax Notes</label>
+            <textarea id="tax_notes" name="tax_notes" placeholder="Any special tax situations — rental income, capital gains, carry-forward losses, etc."></textarea>
+        </div>
+        {% endif %}
+
+        <div class="form-group">
+            <label>
+                <input type="checkbox" name="is_complete" value="true">
+                Mark this section as complete
+            </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save</button>
+        <span id="save-status"></span>
+    </form>
+</div>
+{% endblock %}

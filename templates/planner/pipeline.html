@@ -1,0 +1,33 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Client Pipeline — Financial Planning{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Client Pipeline</h1>
+</div>
+
+<div class="pipeline">
+    {% for stage, data in pipeline.items() %}
+    <div class="pipeline-column">
+        <h3>{{ data.label }} ({{ data.clients | length }})</h3>
+        {% for client in data.clients %}
+        <a href="/planner/client/{{ client.id }}" style="text-decoration: none; color: inherit;">
+            <div class="pipeline-card">
+                <strong>{{ client.user.full_name }}</strong>
+                {% if stage.value == "intake" %}
+                <div class="progress-bar" style="margin-top: 0.4rem;">
+                    <div class="progress-fill" style="width: {{ client._intake_progress }}%"></div>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Intake {{ client._intake_progress }}%</div>
+                {% endif %}
+            </div>
+        </a>
+        {% endfor %}
+        {% if not data.clients %}
+        <div style="font-size: 0.8rem; color: var(--text-muted); padding: 0.5rem;">No clients</div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
