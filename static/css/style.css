@@ -538,70 +538,87 @@ textarea { resize: vertical; min-height: 80px; }
 .projection-table-wrapper {
     overflow-x: auto;
     overflow-y: auto;
-    max-height: 600px;
-    margin-top: 0.5rem;
+    max-height: 650px;
+    margin-top: 0.75rem;
     border: 1px solid var(--border);
     border-radius: var(--radius);
 }
 
 .projection-table {
     width: 100%;
-    border-collapse: collapse;
-    font-size: 0.8rem;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.78rem;
     font-variant-numeric: tabular-nums;
+    line-height: 1.4;
 }
 
-.projection-table th {
-    background: var(--surface);
-    padding: 0.55rem 0.7rem;
-    text-align: right;
-    font-weight: 700;
-    font-size: 0.7rem;
+/* Header */
+.projection-table thead th {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 0.6rem 0.75rem;
+    font-weight: 600;
+    font-size: 0.68rem;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--text-muted);
-    border-bottom: 2px solid var(--primary);
+    letter-spacing: 0.06em;
     position: sticky;
     top: 0;
-    z-index: 1;
-}
-
-.projection-table th:first-child,
-.projection-table td:first-child { text-align: center; }
-
-.projection-table .col-age { width: 50px; text-align: center; font-weight: 600; }
-.projection-table .col-year { width: 55px; text-align: center; color: var(--text-muted); }
-
-.projection-table td {
-    padding: 0.4rem 0.7rem;
-    text-align: right;
-    border-bottom: 1px solid rgba(0,0,0,0.04);
+    z-index: 2;
     white-space: nowrap;
 }
 
-.projection-table .col-highlight { font-weight: 600; }
+.projection-table .col-fixed { text-align: center; width: 52px; }
+.projection-table .col-money { text-align: right; }
+.projection-table .col-pct { text-align: center; width: 55px; }
+.projection-table .col-tax { color: #fca5a5; }
+.projection-table thead .col-accent { color: #86efac; }
+.projection-table .col-muted { color: var(--text-muted); }
 
-.projection-table .row-even { background: rgba(0,0,0,0.015); }
-
-.projection-table tbody tr:hover { background: rgba(59, 130, 246, 0.06); }
-
-.retired-row { color: var(--text-muted); }
-.retired-row .col-highlight { color: var(--text-muted); }
-
-.current-age-row {
-    background: rgba(16, 185, 129, 0.06) !important;
-    font-weight: 600;
+/* Body cells */
+.projection-table td {
+    padding: 0.35rem 0.75rem;
+    white-space: nowrap;
+    border-bottom: 1px solid rgba(0,0,0,0.045);
 }
 
-.retirement-marker {
-    border-top: 2.5px solid var(--primary) !important;
+.projection-table tbody .col-fixed { text-align: center; font-weight: 600; color: var(--text); }
+.projection-table tbody .col-money { text-align: right; }
+.projection-table tbody .col-pct { text-align: center; font-size: 0.72rem; }
+.projection-table tbody .col-accent { font-weight: 700; }
+.projection-table tbody .col-tax { color: #b91c1c; font-size: 0.72rem; }
+.projection-table tbody .col-savings { color: var(--success); }
+.projection-table tbody .col-wealth { color: #7c3aed; }
+
+/* Zebra striping */
+.projection-table tbody tr:nth-child(even) { background: rgba(0,0,0,0.018); }
+
+/* Hover */
+.projection-table tbody tr:hover { background: rgba(59, 130, 246, 0.07) !important; }
+
+/* Current age row */
+.row-current {
+    background: rgba(16, 185, 129, 0.08) !important;
+}
+
+.row-current td { font-weight: 600; }
+
+/* Retirement row */
+.row-retirement {
+    background: rgba(37, 99, 235, 0.08) !important;
+    box-shadow: inset 0 2px 0 var(--primary), inset 0 -2px 0 var(--primary);
+}
+
+.row-retirement td {
     font-weight: 700;
-    color: var(--primary) !important;
+    color: var(--primary);
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
 }
 
-.retirement-marker .col-highlight { color: var(--primary); }
+/* Retired rows (after retirement) */
+.row-retired { opacity: 0.6; }
+.row-retired:hover { opacity: 1; }
 
-/* Decade separators for readability */
-.projection-table tbody tr:nth-child(10n) td {
-    border-bottom: 1.5px solid var(--border);
-}
+/* Decade separators */
+.row-decade td { border-bottom: 2px solid var(--border); }

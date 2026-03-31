@@ -73,5 +73,15 @@
     {% include "components/projection_charts.html" %}
 </div>
 
+<script>
+// Destroy ALL Chart.js instances before HTMX swaps new content in
+document.body.addEventListener('htmx:beforeSwap', function(evt) {
+    if (evt.detail.target && evt.detail.target.id === 'projection-results') {
+        // Destroy every chart instance that currently exists
+        Object.values(Chart.instances).forEach(chart => chart.destroy());
+    }
+});
+</script>
+
 {% endif %}
 {% endblock %}
