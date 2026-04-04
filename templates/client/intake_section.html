@@ -18,107 +18,122 @@
         {% if section.key == "personal" %}
         <div class="form-group">
             <label for="date_of_birth">Date of Birth</label>
-            <input type="text" id="date_of_birth" name="date_of_birth" placeholder="YYYY-MM-DD">
+            <input type="text" id="date_of_birth" name="date_of_birth" placeholder="YYYY-MM-DD"
+                   value="{{ saved.get('date_of_birth', '') }}">
         </div>
         <div class="form-group">
             <label for="civil_status">Civil Status</label>
             <select id="civil_status" name="civil_status">
                 <option value="">Select...</option>
-                <option value="single">Single</option>
-                <option value="married">Married</option>
-                <option value="common_law">Common-law</option>
-                <option value="separated">Separated</option>
-                <option value="divorced">Divorced</option>
-                <option value="widowed">Widowed</option>
+                <option value="single" {% if saved.get('civil_status') == 'single' %}selected{% endif %}>Single</option>
+                <option value="married" {% if saved.get('civil_status') == 'married' %}selected{% endif %}>Married</option>
+                <option value="common_law" {% if saved.get('civil_status') == 'common_law' %}selected{% endif %}>Common-law</option>
+                <option value="separated" {% if saved.get('civil_status') == 'separated' %}selected{% endif %}>Separated</option>
+                <option value="divorced" {% if saved.get('civil_status') == 'divorced' %}selected{% endif %}>Divorced</option>
+                <option value="widowed" {% if saved.get('civil_status') == 'widowed' %}selected{% endif %}>Widowed</option>
             </select>
         </div>
         <div class="form-group">
             <label for="dependents">Number of Dependents</label>
-            <input type="number" id="dependents" name="dependents" min="0" value="0">
+            <input type="number" id="dependents" name="dependents" min="0"
+                   value="{{ saved.get('dependents', '0') }}">
         </div>
 
         {% elif section.key == "income" %}
         <div class="form-group">
             <label for="employment_income">Annual Employment Income</label>
             <div class="hint">Gross salary before deductions</div>
-            <input type="number" id="employment_income" name="employment_income" placeholder="$">
+            <input type="number" id="employment_income" name="employment_income" placeholder="$"
+                   value="{{ saved.get('employment_income', '') }}">
         </div>
         <div class="form-group">
             <label for="other_income">Other Income</label>
             <div class="hint">Side business, rental income, investment income, etc.</div>
-            <input type="number" id="other_income" name="other_income" placeholder="$">
+            <input type="number" id="other_income" name="other_income" placeholder="$"
+                   value="{{ saved.get('other_income', '') }}">
         </div>
         <div class="form-group">
             <label for="income_notes">Notes</label>
-            <textarea id="income_notes" name="income_notes" placeholder="Any relevant details about your income situation..."></textarea>
+            <textarea id="income_notes" name="income_notes" placeholder="Any relevant details about your income situation...">{{ saved.get('income_notes', '') }}</textarea>
         </div>
 
         {% elif section.key == "assets" %}
         <div class="form-group">
             <label for="chequing_savings">Chequing & Savings</label>
-            <input type="number" id="chequing_savings" name="chequing_savings" placeholder="$">
+            <input type="number" id="chequing_savings" name="chequing_savings" placeholder="$"
+                   value="{{ saved.get('chequing_savings', '') }}">
         </div>
         <div class="form-group">
             <label for="rrsp">RRSP Balance</label>
-            <input type="number" id="rrsp" name="rrsp" placeholder="$">
+            <input type="number" id="rrsp" name="rrsp" placeholder="$"
+                   value="{{ saved.get('rrsp', '') }}">
         </div>
         <div class="form-group">
             <label for="tfsa">TFSA Balance</label>
-            <input type="number" id="tfsa" name="tfsa" placeholder="$">
+            <input type="number" id="tfsa" name="tfsa" placeholder="$"
+                   value="{{ saved.get('tfsa', '') }}">
         </div>
         <div class="form-group">
             <label for="other_investments">Other Investments</label>
-            <input type="number" id="other_investments" name="other_investments" placeholder="$">
+            <input type="number" id="other_investments" name="other_investments" placeholder="$"
+                   value="{{ saved.get('other_investments', '') }}">
         </div>
         <div class="form-group">
             <label for="property_value">Property Value (if applicable)</label>
-            <input type="number" id="property_value" name="property_value" placeholder="$">
+            <input type="number" id="property_value" name="property_value" placeholder="$"
+                   value="{{ saved.get('property_value', '') }}">
         </div>
 
         {% elif section.key == "liabilities" %}
         <div class="form-group">
             <label for="mortgage">Mortgage Balance</label>
-            <input type="number" id="mortgage" name="mortgage" placeholder="$">
+            <input type="number" id="mortgage" name="mortgage" placeholder="$"
+                   value="{{ saved.get('mortgage', '') }}">
         </div>
         <div class="form-group">
             <label for="car_loan">Car Loan</label>
-            <input type="number" id="car_loan" name="car_loan" placeholder="$">
+            <input type="number" id="car_loan" name="car_loan" placeholder="$"
+                   value="{{ saved.get('car_loan', '') }}">
         </div>
         <div class="form-group">
             <label for="student_loan">Student Loan</label>
-            <input type="number" id="student_loan" name="student_loan" placeholder="$">
+            <input type="number" id="student_loan" name="student_loan" placeholder="$"
+                   value="{{ saved.get('student_loan', '') }}">
         </div>
         <div class="form-group">
             <label for="credit_cards">Credit Card Balances</label>
-            <input type="number" id="credit_cards" name="credit_cards" placeholder="$">
+            <input type="number" id="credit_cards" name="credit_cards" placeholder="$"
+                   value="{{ saved.get('credit_cards', '') }}">
         </div>
         <div class="form-group">
             <label for="other_debts">Other Debts</label>
-            <input type="number" id="other_debts" name="other_debts" placeholder="$">
+            <input type="number" id="other_debts" name="other_debts" placeholder="$"
+                   value="{{ saved.get('other_debts', '') }}">
         </div>
 
         {% elif section.key == "protection" %}
         <div class="form-group">
             <label for="life_insurance">Life Insurance Coverage</label>
             <div class="hint">Total death benefit across all policies</div>
-            <input type="number" id="life_insurance" name="life_insurance" placeholder="$">
+            <input type="number" id="life_insurance" name="life_insurance" placeholder="$"
+                   value="{{ saved.get('life_insurance', '') }}">
         </div>
         <div class="form-group">
             <label for="disability_insurance">Disability Insurance</label>
             <select id="disability_insurance" name="disability_insurance">
                 <option value="">Select...</option>
-                <option value="none">None</option>
-                <option value="group">Through employer (group)</option>
-                <option value="individual">Individual policy</option>
-                <option value="both">Both group and individual</option>
+                <option value="none" {% if saved.get('disability_insurance') == 'none' %}selected{% endif %}>None</option>
+                <option value="group" {% if saved.get('disability_insurance') == 'group' %}selected{% endif %}>Through employer (group)</option>
+                <option value="individual" {% if saved.get('disability_insurance') == 'individual' %}selected{% endif %}>Individual policy</option>
+                <option value="both" {% if saved.get('disability_insurance') == 'both' %}selected{% endif %}>Both group and individual</option>
             </select>
         </div>
         <div class="form-group">
             <label for="group_benefits">Do you have group benefits?</label>
             <select id="group_benefits" name="group_benefits">
                 <option value="">Select...</option>
-                <option value="yes">Yes</option>
-                <option value="no">No</option>
+                <option value="yes" {% if saved.get('group_benefits') == 'yes' %}selected{% endif %}>Yes</option>
+                <option value="no" {% if saved.get('group_benefits') == 'no' %}selected{% endif %}>No</option>
             </select>
             <div class="hint">If yes, please upload your benefits booklet in the documents section.</div>
         </div>
@@ -127,21 +142,23 @@
         <div class="form-group">
             <label for="rrsp_room">RRSP Contribution Room</label>
             <div class="hint">Found on your latest Notice of Assessment from CRA</div>
-            <input type="number" id="rrsp_room" name="rrsp_room" placeholder="$">
+            <input type="number" id="rrsp_room" name="rrsp_room" placeholder="$"
+                   value="{{ saved.get('rrsp_room', '') }}">
         </div>
         <div class="form-group">
             <label for="tfsa_room">TFSA Contribution Room</label>
-            <input type="number" id="tfsa_room" name="tfsa_room" placeholder="$">
+            <input type="number" id="tfsa_room" name="tfsa_room" placeholder="$"
+                   value="{{ saved.get('tfsa_room', '') }}">
         </div>
         <div class="form-group">
             <label for="tax_notes">Additional Tax Notes</label>
-            <textarea id="tax_notes" name="tax_notes" placeholder="Any special tax situations — rental income, capital gains, carry-forward losses, etc."></textarea>
+            <textarea id="tax_notes" name="tax_notes" placeholder="Any special tax situations — rental income, capital gains, carry-forward losses, etc.">{{ saved.get('tax_notes', '') }}</textarea>
         </div>
         {% endif %}
 
         <div class="form-group">
             <label>
-                <input type="checkbox" name="is_complete" value="true">
+                <input type="checkbox" name="is_complete" value="true" {% if is_complete %}checked{% endif %}>
                 Mark this section as complete
             </label>
         </div>

@@ -67,11 +67,19 @@ async def intake_section(
         IntakeResponse.section_key == section_key,
     ).first()
 
+    # Parse saved data into a dict for form pre-fill
+    saved = {}
+    is_complete = False
+    if existing and existing.data:
+        saved = json.loads(existing.data)
+        is_complete = existing.is_complete
+
     return templates.TemplateResponse("client/intake_section.html", {
         "request": request,
         "user": user,
         "section": section,
-        "existing": existing,
+        "saved": saved,
+        "is_complete": is_complete,
     })
 
 
